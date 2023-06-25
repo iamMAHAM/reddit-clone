@@ -28,6 +28,7 @@ export const Icons = {
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="-0.5 0 48 48"
+        {...props}
       >
         <g>
           <g
