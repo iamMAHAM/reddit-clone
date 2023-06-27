@@ -14,9 +14,7 @@ const SignInPage: FC = () => {
             buttonVariants({ variant: 'ghost' }),
             'self-start -mt-20'
           )}
-        >
-          Home
-        </Link>
+        ></Link>
         <SignIn />
       </div>
     </div>

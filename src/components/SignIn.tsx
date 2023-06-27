@@ -9,7 +9,7 @@ const SignIn: FC = () => {
       <div className="flex flex-col space-y-2 text-center">
         <Icons.Logo className="mx-auto h-6 w-6" />
         <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-        <p className="textsm max-w-ws mx-auto">
+        <p className="textsm max-w-ws mx-auto my-3">
           By continuing, you are setting up a Reddit account and agree to our
           User Agreement and pricacy Policy.
         </p>
@@ -21,7 +21,7 @@ const SignIn: FC = () => {
           new to Reddit ?{' '}
           <Link
             href={'/sign-up'}
-            className="hover:text-zinc-800 text-sl underline-offset-4"
+            className="hover:text-zinc-800 text-sl underline-offset-4 underline"
           >
             {' '}
             Sign Up
