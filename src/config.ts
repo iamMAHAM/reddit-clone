@@ -1,0 +1,1 @@
+export const INFINITE_HANDLE_SCROL_RESULT = 2;
