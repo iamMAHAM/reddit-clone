@@ -1,3 +1,4 @@
+import SubscribeLeaveToggle from '@/components/SubscribeLeaveToggle';
 import { buttonVariants } from '@/components/ui/Button';
 import { getAuthSession } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -26,9 +27,12 @@ const Layout: FC<LayoutProps> = ({ children, params: { slug } }) => {
     })
   );
 
-  const memberCount = subreddit?.subscribers.length;
-
   if (!subreddit) return notFound();
+
+  const memberCount = subreddit.subscribers.length;
+  const isSubscribed = subreddit.subscribers.some(
+    (s) => s.userId === session?.user.id
+  );
 
   return (
     <div className="sm:container max-w-7xl mx-auto h-full pt-12">
@@ -64,13 +68,13 @@ const Layout: FC<LayoutProps> = ({ children, params: { slug } }) => {
                 </div>
               ) : null}
 
-              {/* {subreddit.creatorId !== session?.user?.id ? (
+              {subreddit.creatorId !== session?.user?.id ? (
                 <SubscribeLeaveToggle
                   isSubscribed={isSubscribed}
                   subredditId={subreddit.id}
                   subredditName={subreddit.name}
                 />
-              ) : null} */}
+              ) : null}
               <Link
                 className={buttonVariants({
                   variant: 'outline',
