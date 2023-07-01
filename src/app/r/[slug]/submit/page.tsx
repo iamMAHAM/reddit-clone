@@ -1,3 +1,4 @@
+import Editor from '@/components/Editor';
 import { Button } from '@/components/ui/Button';
 import { db } from '@/lib/db';
 import { notFound } from 'next/navigation';
@@ -33,12 +34,16 @@ const Page: FC<PageProps> = ({ params: { slug } }) => {
         </div>
       </div>
 
+      <Editor />
+
       <div className="w-full justify-end flex">
         <Button
           type="submit"
           className="w-full"
           form="subreddit-post-form"
-        />
+        >
+          Post
+        </Button>
       </div>
     </div>
   );
