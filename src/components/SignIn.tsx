@@ -3,7 +3,10 @@ import { Icons } from './Icons';
 import Link from 'next/link';
 import UserAuthForm from './UserAuthForm';
 
-const SignIn: FC = () => {
+interface SignInProps {
+  isModal?: boolean;
+}
+const SignIn: FC<SignInProps> = ({ isModal }) => {
   return (
     <div className="container mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px]">
       <div className="flex flex-col space-y-2 text-center">
@@ -22,6 +25,7 @@ const SignIn: FC = () => {
           <Link
             href={'/sign-up'}
             className="hover:text-zinc-800 text-sl underline-offset-4 underline"
+            replace={isModal}
           >
             {' '}
             Sign Up

@@ -13,7 +13,7 @@ const page: FC<pageProps> = () => {
             <CloseModal />
           </div>
 
-          <SignUp />
+          <SignUp isModal />
         </div>
       </div>
     </div>
