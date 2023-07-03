@@ -34,7 +34,7 @@ const Page: FC<PageProps> = ({ params: { slug } }) => {
         </div>
       </div>
 
-      <Editor />
+      <Editor subredditId={subreddit.id} />
 
       <div className="w-full justify-end flex">
         <Button
