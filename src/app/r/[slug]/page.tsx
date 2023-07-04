@@ -1,4 +1,5 @@
 import MiniCreatePost from '@/components/MiniCreatePost';
+import PostFeed from '@/components/PostFeed';
 import { INFINITE_HANDLE_SCROL_RESULT } from '@/config';
 import { getAuthSession } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -39,11 +40,10 @@ const Page: FC<PageProps> = ({ params: { slug } }) => {
         r/{subreddit.name}
       </h1>
       <MiniCreatePost session={session} />
-      {/* TODO: posts Feed */}
-      {/* <PostFeed
+      <PostFeed
         initialPosts={subreddit.posts}
         subredditName={subreddit.name}
-      /> */}
+      />
     </>
   );
 };
