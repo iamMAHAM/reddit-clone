@@ -1,10 +1,17 @@
 'use client';
 
-import { FC, useCallback } from 'react';
+import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import TextAreaAutoSize from 'react-textarea-autosize';
 import { useForm } from 'react-hook-form';
 import { PostCreationRequest, PostValidator } from '@/lib/validators/post';
 import { zodResolver } from '@hookform/resolvers/zod';
+import type EditorJs from '@editorjs/editorjs';
+import { uploadFiles } from '@/lib/uploadthing';
+import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+import { toast } from '@/hooks/use-toast';
+import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 interface EditorProps {
   subredditId: string;
@@ -14,7 +21,7 @@ const Editor: FC<EditorProps> = ({ subredditId }) => {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    // formState: { errors },
   } = useForm<PostCreationRequest>({
     resolver: zodResolver(PostValidator),
     defaultValues: {
@@ -23,28 +30,152 @@ const Editor: FC<EditorProps> = ({ subredditId }) => {
       content: null,
     },
   });
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+  const editorRef = useRef<EditorJs>();
+  const _titleRef = useRef<HTMLTextAreaElement>(null);
+  const pathname = usePathname();
+  const router = useRouter();
 
   const initializeEditor = useCallback(async () => {
-    const Editor = (await import('@editorjs/editorjs')).default;
+    const EditorJS = (await import('@editorjs/editorjs')).default;
     const Header = (await import('@editorjs/header')).default;
     const Embed = (await import('@editorjs/embed')).default;
     const Table = (await import('@editorjs/table')).default;
     const List = (await import('@editorjs/list')).default;
-    const Link = (await import('@editorjs/link')).default;
+    const Code = (await import('@editorjs/code')).default;
+    const LinkTool = (await import('@editorjs/link')).default;
     const InlineCode = (await import('@editorjs/inline-code')).default;
-    const Image = (await import('@editorjs/code')).image;
+    const ImageTool = (await import('@editorjs/image')).default;
+
+    if (!editorRef.current) {
+      const editor = new EditorJS({
+        holder: 'editor',
+        onReady() {
+          editorRef.current = editor;
+        },
+        placeholder: 'Type here to write your post...',
+        inlineToolbar: true,
+        data: { blocks: [] },
+        tools: {
+          header: Header,
+          linkTool: {
+            class: LinkTool,
+            config: {
+              endpoint: '/api/link',
+            },
+          },
+          image: {
+            class: ImageTool,
+            config: {
+              uploader: {
+                async uploadByFile(file: File) {
+                  // upload to uploadthing
+                  const [res] = await uploadFiles([file], 'imageUploader');
+
+                  return {
+                    success: 1,
+                    file: {
+                      url: res.fileUrl,
+                    },
+                  };
+                },
+              },
+            },
+          },
+          list: List,
+          code: Code,
+          inlineCode: InlineCode,
+          table: Table,
+          embed: Embed,
+        },
+      });
+    }
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsMounted(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      await initializeEditor();
+      setTimeout(() => {
+        _titleRef.current?.focus();
+      }, 0);
+    };
+    if (isMounted) {
+      init();
+
+      return () => {
+        editorRef.current?.destroy();
+        editorRef.current = undefined;
+      };
+    }
+  }, [initializeEditor, isMounted]);
+
+  useEffect(() => {}, []);
+
+  const { isLoading, mutate: submitPost } = useMutation({
+    mutationFn: async (payload: PostCreationRequest) => {
+      const { data } = await axios.post('/api/subreddit/post/create', payload);
+      return data as string;
+    },
+    onError: () => {
+      toast({
+        title: 'Something went wrong !',
+        description: 'Cannot create your post try again later',
+        variant: 'destructive',
+      });
+    },
+    onSuccess: () => {
+      const newPathname = pathname.split('/').slice(0, -1).join('/');
+      router.push(newPathname);
+      router.refresh();
+
+      return toast({
+        title: 'Post published',
+        description: 'Your post has been published',
+      });
+    },
+  });
+
+  const onSubmit = async (data: PostCreationRequest) => {
+    const blocks = await editorRef.current?.save();
+
+    const payload: PostCreationRequest = {
+      subredditId,
+      content: blocks,
+      title: data.title,
+    };
+
+    submitPost(payload);
+  };
+
+  const { ref: titleRef, ...rest } = register('title');
+
   return (
-    <div className="w-full p-4 bg-zinc-50 rounded-lg border-zinc-50">
+    <div className="w-full p-4 bg-zinc-50 rounded-lg border border-zinc-200">
       <form
         id="subreddit-post-form"
         className="w-fit"
+        onSubmit={handleSubmit(onSubmit)}
       >
         <div className="prose prose-stone dark:prose-invert">
           <TextAreaAutoSize
+            ref={(e) => {
+              titleRef(e);
+              // @ts-ignore
+              _titleRef.current = e;
+            }}
+            {...rest}
             placeholder="Title"
             className="w-full resize-none appearance-none overflow-hidden bg-transparent text-5xl font-bold focus:outline-none"
+          />
+          <div
+            id="editor"
+            className="min-h-[500px]"
           />
         </div>
       </form>
