@@ -1,9 +1,12 @@
+'use client';
 import { ExtendedPost } from '@/types/db';
 import { FC, useRef } from 'react';
 import { useIntersection } from '@mantine/hooks';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { INFINITE_HANDLE_SCROL_RESULT } from '@/config';
 import axios from 'axios';
+import { useSession } from 'next-auth/react';
+import Post from './Post';
 
 interface PostFeedProps {
   initialPosts: ExtendedPost[];
@@ -12,6 +15,7 @@ interface PostFeedProps {
 
 const PostFeed: FC<PostFeedProps> = ({ initialPosts, subredditName }) => {
   const lastPostRef = useRef<HTMLElement>(null);
+  const { data: session } = useSession();
 
   const { data, fetchNextPage, isFetching } = useInfiniteQuery(
     ['infinite-quey'],
@@ -50,7 +54,36 @@ const PostFeed: FC<PostFeedProps> = ({ initialPosts, subredditName }) => {
           return acc;
         }, 0);
 
-        return <li key={index}></li>;
+        const currentVote = post.votes.find(
+          (v) => v.userId === session?.user.id
+        );
+
+        if (index === posts.length - 1) {
+          return (
+            <li
+              key={post.id}
+              ref={ref}
+            >
+              <Post
+                post={post}
+                currentVote={currentVote}
+                voteCount={voteCount}
+                subredditName={post.subreddit.name}
+                commentAmt={post.comments.length}
+              />
+            </li>
+          );
+        }
+        return (
+          <Post
+            key={index}
+            post={post}
+            currentVote={currentVote}
+            voteCount={voteCount}
+            subredditName={post.subreddit.name}
+            commentAmt={post.comments.length}
+          />
+        );
       })}
     </ul>
   );

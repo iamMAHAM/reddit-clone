@@ -131,10 +131,12 @@ const Editor: FC<EditorProps> = ({ subredditId }) => {
     },
     onSuccess: () => {
       const newPathname = pathname.split('/').slice(0, -1).join('/');
+      console.log(newPathname);
       router.push(newPathname);
       router.refresh();
+      console.log('refreshed');
 
-      return toast({
+      toast({
         title: 'Post published',
         description: 'Your post has been published',
       });
