@@ -2,4 +2,4 @@ import { withAuth } from 'next-auth/middleware';
 
 export default withAuth({});
 
-export const config = { matcher: ['/r/create', '/r/:slug*/submit'] };
+export const config = { matcher: ['/r/create'] };
