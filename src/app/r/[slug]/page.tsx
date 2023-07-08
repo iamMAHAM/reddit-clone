@@ -26,6 +26,9 @@ const Page: FC<PageProps> = ({ params: { slug } }) => {
             subreddit: true,
           },
           take: INFINITE_HANDLE_SCROL_RESULT,
+          orderBy: {
+            createdAt: 'desc',
+          },
         },
       },
     })
