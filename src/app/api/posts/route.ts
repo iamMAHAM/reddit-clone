@@ -73,7 +73,6 @@ export const GET = async (req: NextRequest) => {
 
     return NextResponse.json(posts);
   } catch (error) {
-    console.log(error);
     if (error instanceof ZodError) {
       return new NextResponse('Invalid request payload', { status: 422 });
     }
