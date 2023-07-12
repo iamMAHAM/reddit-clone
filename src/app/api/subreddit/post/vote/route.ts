@@ -4,7 +4,7 @@ import { redis } from '@/lib/redis';
 import { PostVoteValidator } from '@/lib/validators/vote';
 import { CachedPost } from '@/types/redis';
 import { NextRequest, NextResponse } from 'next/server';
-import { ZodError } from 'zod';
+import { z } from 'zod';
 
 const CACHE_AFTER_UPVOTES = 1;
 
@@ -13,12 +13,14 @@ export const PATCH = async (req: NextRequest) => {
     const body = await req.json();
 
     const { postId, voteType } = PostVoteValidator.parse(body);
+
     const session = await getAuthSession();
 
     if (!session?.user) {
       return new Response('Unauthorized', { status: 401 });
     }
 
+    // check if user has already voted on this post
     const existingVote = await db.vote.findFirst({
       where: {
         userId: session.user.id,
@@ -41,6 +43,7 @@ export const PATCH = async (req: NextRequest) => {
     }
 
     if (existingVote) {
+      // if vote type is the same as existing vote, delete the vote
       if (existingVote.type === voteType) {
         await db.vote.delete({
           where: {
@@ -51,9 +54,30 @@ export const PATCH = async (req: NextRequest) => {
           },
         });
 
-        return new NextResponse('ok');
+        // Recount the votes
+        const votesAmt = post.votes.reduce((acc, vote) => {
+          if (vote.type === 'UP') return acc + 1;
+          if (vote.type === 'DOWN') return acc - 1;
+          return acc;
+        }, 0);
+
+        if (votesAmt >= CACHE_AFTER_UPVOTES) {
+          const cachePayload: CachedPost = {
+            authorUsername: post.author.username ?? '',
+            content: JSON.stringify(post.content),
+            id: post.id,
+            title: post.title,
+            currentVote: null,
+            createdAt: post.createdAt,
+          };
+
+          await redis.hset(`post:${postId}`, cachePayload); // Store the post data as a hash
+        }
+
+        return new NextResponse('OK');
       }
 
+      // if vote type is different, update the vote
       await db.vote.update({
         where: {
           userId_postId: {
@@ -66,6 +90,7 @@ export const PATCH = async (req: NextRequest) => {
         },
       });
 
+      // Recount the votes
       const votesAmt = post.votes.reduce((acc, vote) => {
         if (vote.type === 'UP') return acc + 1;
         if (vote.type === 'DOWN') return acc - 1;
@@ -73,7 +98,7 @@ export const PATCH = async (req: NextRequest) => {
       }, 0);
 
       if (votesAmt >= CACHE_AFTER_UPVOTES) {
-        const cachedPayload: CachedPost = {
+        const cachePayload: CachedPost = {
           authorUsername: post.author.username ?? '',
           content: JSON.stringify(post.content),
           id: post.id,
@@ -82,12 +107,13 @@ export const PATCH = async (req: NextRequest) => {
           createdAt: post.createdAt,
         };
 
-        await redis.hset(`post:${postId}`, cachedPayload);
+        await redis.hset(`post:${postId}`, cachePayload); // Store the post data as a hash
       }
 
-      return new NextResponse('Ok');
+      return new NextResponse('OK');
     }
 
+    // if no existing vote, create a new vote
     await db.vote.create({
       data: {
         type: voteType,
@@ -96,6 +122,7 @@ export const PATCH = async (req: NextRequest) => {
       },
     });
 
+    // Recount the votes
     const votesAmt = post.votes.reduce((acc, vote) => {
       if (vote.type === 'UP') return acc + 1;
       if (vote.type === 'DOWN') return acc - 1;
@@ -103,7 +130,7 @@ export const PATCH = async (req: NextRequest) => {
     }, 0);
 
     if (votesAmt >= CACHE_AFTER_UPVOTES) {
-      const cachedPayload: CachedPost = {
+      const cachePayload: CachedPost = {
         authorUsername: post.author.username ?? '',
         content: JSON.stringify(post.content),
         id: post.id,
@@ -112,16 +139,19 @@ export const PATCH = async (req: NextRequest) => {
         createdAt: post.createdAt,
       };
 
-      await redis.hset(`post:${postId}`, cachedPayload);
+      await redis.hset(`post:${postId}`, cachePayload); // Store the post data as a hash
     }
 
-    return new NextResponse('ok');
+    return new Response('OK');
   } catch (error) {
-    if (error instanceof ZodError) {
-      return new NextResponse('Invalid request payload', { status: 422 });
+    error;
+    if (error instanceof z.ZodError) {
+      return new NextResponse(error.message, { status: 400 });
     }
-    return new NextResponse('Could not register your vote', {
-      status: 500,
-    });
+
+    return new NextResponse(
+      'Could not post to subreddit at this time. Please try later',
+      { status: 500 }
+    );
   }
 };

@@ -1,7 +1,8 @@
-import dynamic from 'next/dynamic';
-import { FC } from 'react';
+'use client';
 import CustomCodeRenderer from '@/components/renderers/CustomCodeRenderer';
 import CustomImageRenderer from '@/components/renderers/CustomImageRenderer';
+import dynamic from 'next/dynamic';
+import { FC } from 'react';
 
 const Output = dynamic(
   async () => (await import('editorjs-react-renderer')).default,
